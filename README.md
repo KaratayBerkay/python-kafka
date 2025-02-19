@@ -82,6 +82,27 @@ There is one consumer which consume messages from the topic:
       - broker-2
       - broker-3
 ```
+
+### Kafka Broker’s Message Limits Are Too Low
+📌 Issue:
+The Kafka broker rejects messages exceeding message.max.bytes (default: 100MB).
+```python
+message.max.bytes=209715200  # 200MB
+replica.fetch.max.bytes=209715200  # 200MB
+fetch.message.max.bytes=209715200  # 200MB
+```
+
+### All brokers are connected to the same network
+```yaml
+networks:
+  - kafka-network
+```
+
+### Instead using external port 9092, use internal port 29092
+```yaml
+KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://broker-1:19092,PLAINTEXT_HOST://localhost:9092'
+```
+
 by simply running the following command:
 @ both consumer and producer
 ```dockerfile
