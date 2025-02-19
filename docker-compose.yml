@@ -2,6 +2,8 @@ services:
   controller-1:
     image: apache/kafka:latest
     container_name: controller-1
+    networks:
+      - kafka-network
     environment:
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: controller
@@ -14,6 +16,8 @@ services:
   controller-2:
     image: apache/kafka:latest
     container_name: controller-2
+    networks:
+      - kafka-network
     environment:
       KAFKA_NODE_ID: 2
       KAFKA_PROCESS_ROLES: controller
@@ -26,6 +30,8 @@ services:
   controller-3:
     image: apache/kafka:latest
     container_name: controller-3
+    networks:
+      - kafka-network
     environment:
       KAFKA_NODE_ID: 3
       KAFKA_PROCESS_ROLES: controller
@@ -39,7 +45,7 @@ services:
     image: apache/kafka:latest
     container_name: broker-1
     ports:
-      - 29092:9092
+      - "29092:9092"
     environment:
       KAFKA_NODE_ID: 4
       KAFKA_PROCESS_ROLES: broker
@@ -50,6 +56,8 @@ services:
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1@controller-1:9093,2@controller-2:9093,3@controller-3:9093
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+    networks:
+      - kafka-network
     depends_on:
       - controller-1
       - controller-2
@@ -59,7 +67,7 @@ services:
     image: apache/kafka:latest
     container_name: broker-2
     ports:
-      - 39092:9092
+      - "39092:9092"
     environment:
       KAFKA_NODE_ID: 5
       KAFKA_PROCESS_ROLES: broker
@@ -70,6 +78,8 @@ services:
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1@controller-1:9093,2@controller-2:9093,3@controller-3:9093
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+    networks:
+      - kafka-network
     depends_on:
       - controller-1
       - controller-2
@@ -79,7 +89,7 @@ services:
     image: apache/kafka:latest
     container_name: broker-3
     ports:
-      - 49092:9092
+      - "49092:9092"
     environment:
       KAFKA_NODE_ID: 6
       KAFKA_PROCESS_ROLES: broker
@@ -90,8 +100,33 @@ services:
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1@controller-1:9093,2@controller-2:9093,3@controller-3:9093
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+    networks:
+      - kafka-network
     depends_on:
       - controller-1
       - controller-2
       - controller-3
 
+  producer-kafka:
+    container_name: producer-kafka
+    build:
+      context: .
+      dockerfile: producer/Dockerfile
+    networks:
+      - kafka-network
+    depends_on:
+      - broker-1
+      - broker-2
+      - broker-3
+
+  consumer-kafka:
+    container_name: consumer-kafka
+    build:
+      context: .
+      dockerfile: consumer/Dockerfile
+    networks:
+      - kafka-network
+    depends_on:
+      - broker-1
+      - broker-2
+      - broker-3
