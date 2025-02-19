@@ -8,7 +8,7 @@ ENV PYTHONUNBUFFERED 1
 WORKDIR /consumer
 
 # Install dependencies
-COPY requirements.txt /tmp/requirements.txt
+COPY ./consumer/requirements.txt /tmp/requirements.txt
 
 # Install dependencies
 RUN set -ex && \

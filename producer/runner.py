@@ -5,66 +5,61 @@ from typing import Union
 from kafka import KafkaProducer
 from kafka.errors import KafkaError
 
-
-producer = KafkaProducer(bootstrap_servers=['broker1:1234'])
-
-# Asynchronous by default
-future = producer.send('my-topic', b'raw_bytes')
-
-# Block for 'synchronous' sends
-try:
-    record_metadata = future.get(timeout=10)
-    # Successful result returns assigned partition and offset
-    print('topic', record_metadata.topic)
-    print('partition', record_metadata.partition)
-    print('offset', record_metadata.offset)
-except KafkaError as kafka_error:
-    # Decide what to do if produce request failed...
-    print('kafka_error', kafka_error)
-    raise kafka_error
+time.sleep(20)
+producer = KafkaProducer(
+    bootstrap_servers='broker-1:19092,broker-2:19092,broker-3:19092',
+    retries=5,
+    request_timeout_ms=2000,       # Adjust timeout if needed
+    max_request_size=2000000,       # 1MB (adjust as needed)
+    compression_type='gzip'         # Options: 'gzip', 'snappy', 'lz4', 'zstd'
+)
 
 
-# produce asynchronously
-for _ in range(100):
-    producer.send('my-topic', b'msg')
-
+# On send success callback metadata
 def on_send_success(metadata):
-    print('On send success ----------------------------------------')
-    print(metadata.topic)
-    print(metadata.partition)
-    print(metadata.offset)
-    print('On send success ----------------------------------------')
-
-def on_send_error(excp):
-    print('I am an errback')
-    # handle exception
+    print("Sent message to broker is successful \n metadata : ", dict(
+        topic=metadata.topic,
+        partition=metadata.partition,
+        offset=metadata.offset
+    ))
 
 
-def send_message_to_broker(producer_: KafkaProducer, topic: str, message: Union[str, bytes]):
+# On send error callback
+def on_send_error(exc):
+    print(f'I am an errback : {exc}')
+
+
+# Send message to broker
+def send_message_to_broker(producer_: KafkaProducer, topic: str, message: Union[str, bytes]) -> None:
     # produce asynchronously with callbacks
-    if isinstance(message, str):
-        producer_.send(topic, message).add_callback(on_send_success).add_errback(on_send_error)
-    else:
-        producer_.send(topic, message).add_callback(on_send_success).add_errback(on_send_error)
-
-    # block until all async messages are sent
-    producer_.flush()
-    # configure multiple retries
-    KafkaProducer(retries=5)
+    try:
+        if isinstance(message, str):
+            producer_.send(topic, message.encode()).add_callback(on_send_success).add_errback(on_send_error)
+        else:
+            producer_.send(topic, message).add_callback(on_send_success).add_errback(on_send_error)
+        # block until all async messages are sent
+        producer_.flush()
+    except KafkaError as kafka_error:
+        # Decide what to do if produce request failed...
+        print('kafka_error', kafka_error)
+        raise kafka_error
+    finally:
+        # producer_.close()
+        return
 
 
 if __name__ == '__main__':
     print('Producer started ...')
-    i = 1
+    i = 1001
     while True:
         try:
-            # produce asynchronously with callbacks
-            send_in_dict = json.dumps({'data': [f'val back {i}', f'val2 back {i}'], 'meta': {'key': f'val {i}'}})
-            send_in_bytes = send_in_dict.encode('utf-8')
+            send_in_bytes = json.dumps({
+                'data': [f'val back {i}', f'val2 back {i}'], 'metadata': {'node': str(producer)}
+            }).encode()
             send_message_to_broker(producer_=producer, topic='data-from-producer', message=send_in_bytes)
             time.sleep(3)
             i += 1
         except Exception as e:
             print(f'Producer stopped error raised : {e}')
-            producer.close()
-            break
+            # producer.close()
+            pass

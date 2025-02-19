@@ -8,7 +8,7 @@ ENV PYTHONUNBUFFERED 1
 WORKDIR /producer
 
 # Install dependencies
-COPY requirements.txt /tmp/requirements.txt
+COPY ./producer/requirements.txt /tmp/requirements.txt
 
 # Install dependencies
 RUN set -ex && \
